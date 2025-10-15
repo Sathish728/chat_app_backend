@@ -20,5 +20,5 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Build Docker Image
+      - name: Build Docker Images
         run: docker build -t backend:latest ./backend
