@@ -1,0 +1,29 @@
+name: Backend CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-backend:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Create .env.prod file on EC2
+        run: |
+          echo "NODE_ENV=production" > /home/ubuntu/chat-app/backend/.env.prod
+          echo "PORT=4000" >> /home/ubuntu/chat-app/backend/.env.prod
+          echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> /home/ubuntu/chat-app/backend/.env.prod
+          echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}" >> /home/ubuntu/chat-app/backend/.env.prod
+          echo "JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}" >> /home/ubuntu/chat-app/backend/.env.prod
+          echo "STREAM_API_KEY=${{ secrets.STREAM_API_KEY }}" >> /home/ubuntu/chat-app/backend/.env.prod
+          echo "STREAM_API_SECRET=${{ secrets.STREAM_API_SECRET }}" >> /home/ubuntu/chat-app/backend/.env.prod
+
+      - name: Restart Backend Container
+        run: |
+          cd /home/ubuntu/chat-app
+          docker-compose down
+          docker-compose up -d --build backend
