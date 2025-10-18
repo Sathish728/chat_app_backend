@@ -1,4 +1,5 @@
 name: Backend CI
+
 on:
   push:
     branches: [main]
@@ -6,6 +7,14 @@ on:
 jobs:
   build:
     runs-on: self-hosted
+
     steps:
       - uses: actions/checkout@v3
-      - run: npm ci
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install Dependencies
+        run: npm ci
