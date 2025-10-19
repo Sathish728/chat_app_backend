@@ -7,6 +7,7 @@ on:
 jobs:
   deploy-backend:
     runs-on: self-hosted
+    timeout-minutes: 15
 
     steps:
       - name: Checkout Repository
@@ -20,14 +21,30 @@ jobs:
           fi
           echo "Dockerfile found ✓"
 
-      - name: Stop and Clean Old Containers
+      - name: Stop Backend Container
         run: |
           cd /home/ubuntu/chat-app
-          docker-compose down backend || true
-          docker image prune -f
+          docker-compose stop backend || true
+          docker rm -f chat-app_backend_1 || true
 
-      - name: Build and Deploy backend
+      - name: Clean Docker State
+        run: |
+          docker container prune -f
+          docker image prune -f
+          docker rmi chat-app_backend || true
+
+      - name: Build Backend
         run: |
           cd /home/ubuntu/chat-app
           docker-compose build --no-cache backend
+
+      - name: Deploy Backend
+        run: |
+          cd /home/ubuntu/chat-app
           docker-compose up -d backend
+
+      - name: Verify Deployment
+        run: |
+          sleep 10
+          docker ps | grep backend
+          docker logs $(docker ps -q -f name=backend) --tail 50
