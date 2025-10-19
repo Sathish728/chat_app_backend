@@ -3,18 +3,25 @@ name: Backend CI
 on:
   push:
     branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/ci-backend.yml"
 
 jobs:
   build:
     runs-on: self-hosted
+    timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Set up Node.js
+      - name: Set up Node
         uses: actions/setup-node@v3
         with:
           node-version: "18"
 
       - name: Install Dependencies
-        run: npm ci
+        run: |
+          cd /home/ubuntu/chat-app/backend/_work/chat_app_backend/chat_app_backend
+          npm ci --production

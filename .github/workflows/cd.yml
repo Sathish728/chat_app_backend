@@ -1,37 +1,30 @@
 name: Backend CD
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Backend CI"]
+    types:
+      - completed
     branches: [main]
 
 jobs:
-  deploy-backend:
+  deploy:
     runs-on: self-hosted
     timeout-minutes: 15
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Verify Dockerfile exists
-        run: |
-          if [ ! -f /home/ubuntu/chat-app/backend/_work/chat_app_backend/chat_app_backend/Dockerfile ]; then
-            echo "ERROR: Dockerfile not found!"
-            exit 1
-          fi
-          echo "Dockerfile found ✓"
-
-      - name: Stop Backend Container
+      - name: Complete Backend Cleanup
         run: |
           cd /home/ubuntu/chat-app
-          docker-compose stop backend || true
-          docker rm -f chat-app_backend_1 || true
-
-      - name: Clean Docker State
-        run: |
+          docker-compose stop backend 2>/dev/null || true
+          docker rm -f chat-app_backend_1 2>/dev/null || true
+          docker rmi -f chat-app_backend 2>/dev/null || true
           docker container prune -f
           docker image prune -f
-          docker rmi chat-app_backend || true
 
       - name: Build Backend
         run: |
@@ -41,10 +34,10 @@ jobs:
       - name: Deploy Backend
         run: |
           cd /home/ubuntu/chat-app
-          docker-compose up -d backend
+          docker-compose up -d --force-recreate backend
 
       - name: Verify Deployment
         run: |
           sleep 10
           docker ps | grep backend
-          docker logs $(docker ps -q -f name=backend) --tail 50
+          docker logs chat-app_backend_1 --tail 50
