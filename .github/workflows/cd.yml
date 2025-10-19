@@ -12,23 +12,22 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Create .env.prod file
+      - name: Verify Dockerfile exists
         run: |
-          mkdir -p /home/ubuntu/chat-app/backend_code
-          echo "PORT=4000" >> /home/ubuntu/chat-app/backend_code/.env.prod
-          echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> /home/ubuntu/chat-app/backend_code/.env.prod
-          echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}" >> /home/ubuntu/chat-app/backend_code/.env.prod
-          echo "JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}" >> /home/ubuntu/chat-app/backend_code/.env.prod
-          echo "STREAM_API_KEY=${{ secrets.STREAM_API_KEY }}" >> /home/ubuntu/chat-app/backend_code/.env.prod
-          echo "STREAM_API_SECRET=${{ secrets.STREAM_API_SECRET }}" >> /home/ubuntu/chat-app/backend_code/.env.prod
+          if [ ! -f /home/ubuntu/chat-app/backend/_work/backend/backend/Dockerfile ]; then
+            echo "ERROR: Dockerfile not found!"
+            exit 1
+          fi
+          echo "Dockerfile found ✓"
 
-      - name: Build and Restart Backend
+      - name: Stop and Clean Old Containers
         run: |
-          # Build Docker image from correct folder
-          cd /home/ubuntu/chat-app/backend_code
-          docker build -t backend:latest .
-
-          # Deploy with docker-compose
           cd /home/ubuntu/chat-app
-          docker-compose down
-          docker-compose up -d --build backend
+          docker-compose down backend || true
+          docker image prune -f
+
+      - name: Build and Deploy backend
+        run: |
+          cd /home/ubuntu/chat-app
+          docker-compose build --no-cache backend
+          docker-compose up -d backend
