@@ -3,8 +3,7 @@ name: Backend CD
 on:
   workflow_run:
     workflows: ["Backend CI"]
-    types:
-      - completed
+    types: [completed]
     branches: [main]
 
 jobs:
@@ -17,24 +16,41 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Complete Backend Cleanup
+      - name: Ensure Network Exists
+        run: docker network create chat-app_default 2>/dev/null || true
+
+      - name: Stop and Remove Old Backend
         run: |
-          cd /home/ubuntu/chat-app
-          docker-compose stop backend 2>/dev/null || true
+          docker stop chat-app_backend_1 2>/dev/null || true
           docker rm -f chat-app_backend_1 2>/dev/null || true
           docker rmi -f chat-app_backend 2>/dev/null || true
-          docker container prune -f
-          docker image prune -f
 
       - name: Build Backend
         run: |
           cd /home/ubuntu/chat-app
           docker-compose build --no-cache backend
 
+      - name: Ensure Mongo Running
+        run: |
+          if ! docker ps | grep -q chat-app_mongo_1; then
+            docker run -d \
+              --name chat-app_mongo_1 \
+              --network chat-app_default \
+              -p 8080:27017 \
+              --restart unless-stopped \
+              mongo
+            sleep 5
+          fi
+
       - name: Deploy Backend
         run: |
-          cd /home/ubuntu/chat-app
-          docker-compose up -d --force-recreate backend
+          docker run -d \
+            --name chat-app_backend_1 \
+            --network chat-app_default \
+            -p 4000:4000 \
+            --env-file /home/ubuntu/chat-app/backend/.env.prod \
+            --restart unless-stopped \
+            chat-app_backend
 
       - name: Verify Deployment
         run: |
