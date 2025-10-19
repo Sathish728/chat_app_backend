@@ -19,7 +19,7 @@ const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:5173",
     "http://frontend:3000", // Docker container name
-    "https://webgen.club" // Your production domain
+    "http://13.232.171.97:3000" // Your production domain
 ];
 
 app.use(cors({
